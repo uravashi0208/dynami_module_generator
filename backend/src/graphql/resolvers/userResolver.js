@@ -1,7 +1,6 @@
 const { User, Role } = require('../../models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { googleLogin } = require('../../routes/auth');
 
 module.exports = {
   Query: {
@@ -88,9 +87,5 @@ module.exports = {
         user: await newUser.populate('roles')
       };
     },
-
-    googleLogin: async (_, { idToken }) => {
-      return googleLogin(_, { idToken });
-    }
   },
 };

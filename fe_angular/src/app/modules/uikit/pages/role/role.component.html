@@ -1,0 +1,179 @@
+<div class="mb-4 flex justify-between">
+  <div class="inline-block">
+    <h3 class="text-foreground font-semibold">Role</h3>
+    <div class="text-muted-foreground space-x-1 text-xs font-medium">
+      <a href="" class="hover:text-primary">All Roles:</a>
+      <span class="text-foreground">{{ filteredRoles().length }}</span>
+    </div>
+  </div>
+  <div class="inline-block space-x-4">
+    <button
+      class="bg-muted text-muted-foreground hover:text-foreground flex-none rounded-md px-4 py-2.5 text-xs font-semibold">
+      Import CSV
+    </button>
+    <button
+      class="bg-primary text-primary-foreground flex-none rounded-md px-4 py-2.5 text-xs font-semibold"
+      (click)="openRoleForm()">
+      Add Role
+    </button>
+  </div>
+</div>
+
+<div class="border-muted/20 bg-background flex min-w-full flex-col rounded-xl border p-2">
+  <div class="flex flex-wrap items-center justify-between gap-2 py-3 px-5">
+    <h3 class="text-muted-foreground text-sm font-medium">
+      Showing {{ paginatedRoles().length }} of {{ roles().length }} roles
+    </h3>
+    <div class="flex flex-wrap gap-2">
+      <div class="flex">
+        <label class="text-muted-foreground relative">
+          <div class="absolute left-2.5 top-2.5">
+            <svg-icon src="./assets/icons/heroicons/outline/magnifying-glass.svg" [svgClass]="'h-4 w-4'"> </svg-icon>
+          </div>
+          <input
+            name="search"
+            class="py-2 pl-8 pr-2"
+            placeholder="Search roles"
+            type="text"
+            value=""
+            (input)="onSearchChange($event)" />
+        </label>
+      </div>
+      <div class="flex flex-wrap gap-2.5">
+        <select name="order" class="text-muted-foreground w-28! p-2" (change)="onOrderChange($event)">
+          <option value="1">Newest</option>
+          <option value="2">Oldest</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div
+    class="scrollbar-thumb-rounded scrollbar-track-rounded scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted grow overflow-x-auto px-5">
+    <table
+      class="text-muted-foreground table w-full table-auto border-collapse border-0 text-left align-middle leading-5">
+      <thead class="border-muted/20 text-muted-foreground border text-xs">
+        <tr>
+          <!-- <th class="w-[50px]">
+            <input (change)="toggle($event)" class="checkbox checkbox-sm" data-datatable-check="true" type="checkbox" />
+          </th> -->
+          <th class="min-w-[500px]">Name</th>
+          <th class="min-w-[300px]">Status</th>
+          <th class="w-[300px]">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (role of paginatedRoles(); track $index) {
+        <tr class="hover:bg-card/50">
+          <!-- <td class="text-center">
+            <input
+              [(ngModel)]="role.selected"
+              class="checkbox checkbox-sm"
+              data-datatable-row-check="true"
+              type="checkbox"
+              value="28" />
+          </td> -->
+          <td>
+            <div class="flex items-center gap-2.5">
+              <img
+                alt="role avatar"
+                class="h-9 w-9 shrink-0 rounded-full"
+                src="https://ui-avatars.com/api/?name={{ role.name }}&background=random" />
+              <div class="flex flex-col items-start">
+                <a class="text-foreground hover:text-primary text-sm font-semibold" href="#"> {{ role.name }}</a>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="flex items-center gap-1.5">
+              <span class="relative flex h-2 w-2">
+                <span
+                  class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"
+                  [class.bg-green-400]="role.isActive"
+                  [class.bg-red-400]="!role.isActive"></span>
+                <span
+                  class="relative inline-flex h-2 w-2 rounded-full"
+                  [class.bg-green-500]="role.isActive"
+                  [class.bg-red-500]="!role.isActive"></span>
+              </span>
+              <span>{{ role.isActive ? 'Active' : 'Inactive' }}</span>
+            </div>
+          </td>
+          <td class="text-center">
+            <div class="flex items-center space-x-5">
+              <button
+                (click)="editRole(role)"
+                class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-blue-600 transition-colors">
+                <svg-icon src="assets/icons/heroicons/outline/pencil-square.svg" [svgClass]="'h-7 w-7'"> </svg-icon>
+              </button>
+              <button
+                (click)="deleteRole(role)"
+                class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-red-600 transition-colors">
+                <svg-icon src="assets/icons/heroicons/outline/trash.svg" [svgClass]="'h-7 w-7'"> </svg-icon>
+              </button>
+            </div>
+          </td>
+        </tr>
+        } @empty {
+        <tr>
+          <td class="py-4 text-center text-sm" colspan="7">No Role foundss</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <app-table-footer
+    [currentPage]="currentPage()"
+    [itemsPerPage]="itemsPerPage()"
+    [totalItems]="totalItems()"
+    (pageChange)="onPageChange($event)"
+    (pageSizeChange)="onPageSizeChange($event)"></app-table-footer>
+</div>
+
+<!-- Role Form Modal -->
+@if (showRoleForm) {
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+  <div class="w-full max-w-md rounded-lg bg-white shadow-xl">
+    <div class="p-6">
+      <h3 class="mb-4 text-lg font-semibold">{{ editingRole ? 'Edit Role' : 'Add New Role' }}</h3>
+      <form [formGroup]="roleForm" (ngSubmit)="saveRole()">
+        <div class="mb-4">
+          <label class="mb-1 block text-sm font-medium text-gray-700">Role Name</label>
+          <input
+            type="text"
+            formControlName="name"
+            class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Enter role name" />
+          @if (roleForm.get('name')?.invalid && roleForm.get('name')?.touched) {
+          <p class="mt-1 text-xs text-red-500">Role name is required</p>
+          }
+        </div>
+
+        <div class="mb-4">
+          <label class="flex items-center">
+            <input
+              type="checkbox"
+              formControlName="isActive"
+              class="mr-2 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" />
+            <span class="text-sm font-medium text-gray-700">Active Role</span>
+          </label>
+        </div>
+
+        <div class="flex justify-end space-x-3">
+          <button
+            type="button"
+            (click)="closeRoleForm()"
+            class="rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200">
+            Cancel
+          </button>
+          <button
+            type="submit"
+            [disabled]="!roleForm.valid"
+            class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:bg-blue-300">
+            {{ editingRole ? 'Update' : 'Create' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+}

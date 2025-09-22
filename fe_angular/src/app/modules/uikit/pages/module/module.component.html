@@ -1,0 +1,239 @@
+<div class="mb-4 flex justify-between">
+  <div class="inline-block">
+    <h3 class="text-foreground font-semibold">Modules</h3>
+    <div class="text-muted-foreground space-x-1 text-xs font-medium">
+      <a href="" class="hover:text-primary">All Modules:</a>
+      <span class="text-foreground">{{ filteredModules().length }}</span>
+    </div>
+  </div>
+  <div class="inline-block space-x-4">
+    <button
+      class="bg-primary text-primary-foreground flex-none rounded-md px-4 py-2.5 text-xs font-semibold"
+      (click)="openModuleForm()">
+      Create Module
+    </button>
+  </div>
+</div>
+
+<div class="border-muted/20 bg-background flex min-w-full flex-col rounded-xl border p-2">
+  <div class="flex flex-wrap items-center justify-between gap-2 py-3 px-5">
+    <h3 class="text-muted-foreground text-sm font-medium">
+      Showing {{ paginatedModules().length }} of {{ modules().length }} modules
+    </h3>
+    <div class="flex flex-wrap gap-2">
+      <div class="flex">
+        <label class="text-muted-foreground relative">
+          <div class="absolute left-2.5 top-2.5">
+            <svg-icon src="./assets/icons/heroicons/outline/magnifying-glass.svg" [svgClass]="'h-4 w-4'"> </svg-icon>
+          </div>
+          <input
+            name="search"
+            class="py-2 pl-8 pr-2"
+            placeholder="Search modules"
+            type="text"
+            value=""
+            (input)="onSearchChange($event)" />
+        </label>
+      </div>
+    </div>
+  </div>
+  <div
+    class="scrollbar-thumb-rounded scrollbar-track-rounded scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted grow overflow-x-auto px-5">
+    <table
+      class="text-muted-foreground table w-full table-auto border-collapse border-0 text-left align-middle leading-5">
+      <thead class="border-muted/20 text-muted-foreground border text-xs">
+        <tr>
+          <th class="min-w-[200px]">Name</th>
+          <th class="min-w-[300px]">Fields</th>
+          <th class="min-w-[150px]">Created At</th>
+          <th class="w-[150px]">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (module of paginatedModules(); track $index) {
+        <tr class="hover:bg-card/50">
+          <td>
+            <span class="text-foreground text-sm font-semibold">{{ module.name }}</span>
+          </td>
+          <td>
+            <div class="flex flex-wrap gap-1">
+              @for (field of module.fields; track $index) {
+              <span class="bg-muted text-muted-foreground rounded-full px-2 py-1 text-xs">
+                {{ field.name }}: {{ field.dataType }}
+                @if (field.isRequired) {
+                <span class="text-red-500">*</span>
+                } @if (field.isUnique) {
+                <span class="text-blue-500">U</span>
+                }
+              </span>
+              }
+            </div>
+          </td>
+          <td>
+            <span class="text-muted-foreground text-sm">{{ formatDate(module.createdAt) }}</span>
+          </td>
+          <td class="text-center">
+            <div class="flex items-center space-x-5">
+              <button
+                (click)="openModuleForm(module)"
+                class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-blue-600 transition-colors">
+                <svg-icon src="assets/icons/heroicons/outline/pencil-square.svg" [svgClass]="'h-7 w-7'"> </svg-icon>
+              </button>
+              <button
+                (click)="deleteModule(module)"
+                class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-red-600 transition-colors">
+                <svg-icon src="assets/icons/heroicons/outline/trash.svg" [svgClass]="'h-7 w-7'"> </svg-icon>
+              </button>
+            </div>
+          </td>
+        </tr>
+        } @empty {
+        <tr>
+          <td class="py-4 text-center text-sm" colspan="4">No modules found</td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <app-table-footer
+    [currentPage]="currentPage()"
+    [itemsPerPage]="itemsPerPage()"
+    [totalItems]="totalItems()"
+    (pageChange)="onPageChange($event)"
+    (pageSizeChange)="onPageSizeChange($event)"></app-table-footer>
+</div>
+
+<!-- Module Form Modal -->
+@if (showModuleForm) {
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+  <div class="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-lg bg-white shadow-xl">
+    <!-- Header -->
+    <div class="border-b border-gray-200 p-6">
+      <h3 class="text-lg font-semibold">{{ editingModule ? 'Edit Module' : 'Create New Module' }}</h3>
+    </div>
+
+    <!-- Scrollable Form Content -->
+    <div class="flex-1 overflow-y-auto p-6">
+      <form [formGroup]="moduleForm" (ngSubmit)="saveModule()">
+        <div class="mb-4">
+          <label class="mb-1 block text-sm font-medium text-gray-700">Module Name</label>
+          <input
+            type="text"
+            formControlName="name"
+            class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Enter module name (e.g., Product, Category)"
+            [readonly]="editingModule !== null" />
+          @if (moduleForm.get('name')?.invalid && moduleForm.get('name')?.touched) {
+          <p class="mt-1 text-xs text-red-500">Module name is required and must start with a capital letter</p>
+          }
+        </div>
+
+        <div class="mb-4">
+          <div class="mb-2 flex items-center justify-between">
+            <label class="block text-sm font-medium text-gray-700">Fields</label>
+            <button type="button" (click)="addField()" class="text-sm text-blue-600 hover:text-blue-800">
+              + Add Field
+            </button>
+          </div>
+
+          <div formArrayName="fields" class="space-y-4">
+            @for (field of fields.controls; track $index; let i = $index) {
+            <div [formGroupName]="i" class="rounded-md border border-gray-200 p-4">
+              <div class="mb-2 flex justify-between">
+                <h4 class="font-medium">Field #{{ i + 1 }}</h4>
+                <button type="button" (click)="removeField(i)" class="text-red-600 hover:text-red-800">Remove</button>
+              </div>
+
+              <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label class="mb-1 block text-sm font-medium text-gray-700">Field Name</label>
+                  <input
+                    type="text"
+                    formControlName="name"
+                    class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., title, price, isActive" />
+                  @if (fields.at(i).get('name')?.invalid && fields.at(i).get('name')?.touched) {
+                  <p class="mt-1 text-xs text-red-500">Field name is required and must start with lowercase letter</p>
+                  }
+                </div>
+
+                <div>
+                  <label class="mb-1 block text-sm font-medium text-gray-700">Label</label>
+                  <input
+                    type="text"
+                    formControlName="label"
+                    class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., Product Title, Price, Active Status" />
+                  @if (fields.at(i).get('label')?.invalid && fields.at(i).get('label')?.touched) {
+                  <p class="mt-1 text-xs text-red-500">Label is required</p>
+                  }
+                </div>
+
+                <div>
+                  <label class="mb-1 block text-sm font-medium text-gray-700">Data Type</label>
+                  <select
+                    formControlName="dataType"
+                    class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    @for (type of fieldTypes; track $index) {
+                    <option [value]="type">{{ type }}</option>
+                    }
+                  </select>
+                </div>
+
+                <div class="flex items-end space-x-4">
+                  <label class="flex items-center">
+                    <input
+                      type="checkbox"
+                      formControlName="isRequired"
+                      class="mr-2 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" />
+                    <span class="text-sm font-medium text-gray-700">Required</span>
+                  </label>
+
+                  <label class="flex items-center">
+                    <input
+                      type="checkbox"
+                      formControlName="isUnique"
+                      class="mr-2 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" />
+                    <span class="text-sm font-medium text-gray-700">Unique</span>
+                  </label>
+                </div>
+              </div>
+
+              @if (fields.at(i).get('dataType')?.value === 'ObjectId') {
+              <div class="mt-3">
+                <label class="mb-1 block text-sm font-medium text-gray-700">Reference Model</label>
+                <input
+                  type="text"
+                  formControlName="ref"
+                  class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g., Category, User" />
+              </div>
+              }
+            </div>
+            }
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Fixed Footer with Buttons -->
+    <div class="border-t border-gray-200 bg-gray-50 p-6">
+      <div class="flex justify-end space-x-3">
+        <button
+          type="button"
+          (click)="closeModuleForm()"
+          class="rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200">
+          Cancel
+        </button>
+        <button
+          type="submit"
+          [disabled]="!moduleForm.valid"
+          (click)="saveModule()"
+          class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:bg-blue-300">
+          {{ editingModule ? 'Update' : 'Create' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+}

@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm ci && npm run build -- --configuration production --base-href /",
-  "outputDirectory": "dist/angular-tailwind",
+  "outputDirectory": "dist/angular-tailwind/browser",
+  "nodeVersion": "20",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }

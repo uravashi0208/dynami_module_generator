@@ -11,7 +11,7 @@
           type="text"
           id="first_name"
           [ngClass]="{ 'is__invalid-input': submitted && f['first_name'].errors }"
-          class="peer block"
+          class="peer block py-4"
           placeholder=" "
           formControlName="first_name" />
         <label
@@ -31,7 +31,7 @@
           type="text"
           id="last_name"
           [ngClass]="{ 'is__invalid-input': submitted && f['last_name'].errors }"
-          class="peer block"
+          class="peer block py-4"
           placeholder=" "
           formControlName="last_name" />
         <label
@@ -51,7 +51,7 @@
           type="text"
           id="email"
           [ngClass]="{ 'is__invalid-input': submitted && f['email'].errors }"
-          class="peer block"
+          class="peer block py-4"
           placeholder=" "
           formControlName="email" />
         <label
@@ -72,7 +72,7 @@
           [type]="passwordTextType ? 'text' : 'password'"
           id="password"
           [ngClass]="{ 'is__invalid-input': submitted && f['password'].errors }"
-          class="peer block"
+          class="peer block py-4"
           placeholder=" "
           formControlName="password" />
         <label

@@ -12,7 +12,7 @@
           type="text"
           id="email"
           [ngClass]="{ 'is__invalid-input': submitted && f['email'].errors }"
-          class="peer block"
+          class="peer block py-4"
           placeholder=" "
           formControlName="email" />
         <label
@@ -34,7 +34,7 @@
           [type]="passwordTextType ? 'text' : 'password'"
           id="password"
           [ngClass]="{ 'is__invalid-input': submitted && f['password'].errors }"
-          class="peer block"
+          class="peer block py-4"
           placeholder=" "
           formControlName="password" />
         <label

@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm ci && npm run build -- --configuration production --base-href /",
+  "outputDirectory": "dist/<app-name>",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}

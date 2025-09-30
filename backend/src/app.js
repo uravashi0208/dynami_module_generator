@@ -4,9 +4,10 @@ const { ApolloServer } = require('apollo-server-express');
 const connectDB = require('./config/db');
 const { typeDefs, resolvers } = require('./graphql');
 const authMiddleware = require('./middlewares/authMiddleware');
+const corsOptions = require('./corsConfig');
 
 const app = express();
-app.use(cors()); // enable CORS for frontend dev server
+app.use(cors(corsOptions)); // enable CORS for frontend dev server
 
 async function startServer() {
   await connectDB();
@@ -21,8 +22,7 @@ async function startServer() {
   });
 
   await server.start();
-  server.applyMiddleware({ app, path: '/graphql' });
-
+  server.applyMiddleware({ app,path: '/graphql', cors: corsOptions });
   return app;
 }
 

@@ -296,48 +296,42 @@ const updateModelsIndex = (moduleName) => {
     
     let content = fs.readFileSync(modelsIndexPath, 'utf8');
     
-    // Check if the model is already exported
-    const exportRegex = new RegExp(`${moduleName}: require\\(['\"]\\.\\/${moduleName}['\"]\\)`);
-    if (exportRegex.test(content)) {
+    // Extract all existing model exports using regex
+    const modelExports = [];
+    const exportRegex = /(\w+):\s*require\('\.\/(\w+)'\)/g;
+    let match;
+    
+    while ((match = exportRegex.exec(content)) !== null) {
+      modelExports.push({
+        key: match[1],
+        value: match[2]
+      });
+    }
+    
+    // Check if module already exists
+    const exists = modelExports.some(exp => exp.key === moduleName && exp.value === moduleName);
+    if (exists) {
       console.log(`Model ${moduleName} already exists in index`);
       return true;
     }
     
-    // Add to module.exports object
-    const exportsMatch = content.match(/module\.exports = {([^}]+)}/);
-    if (exportsMatch) {
-      const currentExports = exportsMatch[1];
-      const newExports = currentExports.trim();
-      
-      // Check if there are existing exports
-      if (newExports.length > 0) {
-        // Add comma and new export
-        const updatedExports = newExports + `,\n    ${moduleName}: require('./${moduleName}')`;
-        content = content.replace(exportsMatch[0], `module.exports = {\n    ${updatedExports}\n  };`);
-      } else {
-        // First export
-        content = content.replace(exportsMatch[0], `module.exports = {\n    ${moduleName}: require('./${moduleName}')\n  };`);
-      }
-    } else {
-      // If the pattern doesn't match, try a different approach
-      const alternativeMatch = content.match(/module\.exports = {([\s\S]*?)}/);
-      if (alternativeMatch) {
-        const currentExports = alternativeMatch[1].trim();
-        if (currentExports.length > 0) {
-          const updatedExports = currentExports + `,\n    ${moduleName}: require('./${moduleName}')`;
-          content = content.replace(alternativeMatch[0], `module.exports = {${updatedExports}\n  };`);
-        } else {
-          content = content.replace(alternativeMatch[0], `module.exports = {\n    ${moduleName}: require('./${moduleName}')\n  };`);
-        }
-      } else {
-        // If no exports pattern found, create the entire exports object
-        content = content.replace('module.exports = {', `module.exports = {\n    ${moduleName}: require('./${moduleName}'),`);
-      }
-    }
+    // Add the new module
+    modelExports.push({
+      key: moduleName,
+      value: moduleName
+    });
     
-    fs.writeFileSync(modelsIndexPath, content);
+    // Sort exports alphabetically for consistency
+    modelExports.sort((a, b) => a.key.localeCompare(b.key));
+    
+    // Rebuild the file content
+    const exportLines = modelExports.map(exp => `    ${exp.key}: require('./${exp.value}')`);
+    const newContent = `module.exports = {\n${exportLines.join(',\n')}\n  };`;
+    
+    fs.writeFileSync(modelsIndexPath, newContent);
     console.log(`Added ${moduleName} model to models/index.js`);
     return true;
+    
   } catch (error) {
     console.error('Error updating models index:', error);
     return false;

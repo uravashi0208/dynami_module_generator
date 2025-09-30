@@ -191,7 +191,7 @@ const updateSchemaIndex = (moduleName) => {
     if (exportsMatch) {
       const currentExports = exportsMatch[1];
       const newExports = currentExports + `,${moduleName.toLowerCase()}Schema`;
-      content = content.replace(exportsMatch[0], `module.exports = [${newExports}];`);
+      content = content.replace(exportsMatch[0], `module.exports = [${newExports}]`);
     }
     
     fs.writeFileSync(schemaIndexPath, content);
@@ -272,7 +272,7 @@ const updateResolverIndex = (moduleName) => {
     if (resolversMatch) {
       const currentResolvers = resolversMatch[1];
       const newResolvers = currentResolvers + `,${moduleName}Resolver`;
-      content = content.replace(resolversMatch[0], `const resolvers = [${newResolvers}];`);
+      content = content.replace(resolversMatch[0], `const resolvers = [${newResolvers}]`);
     }
     
     fs.writeFileSync(resolverIndexPath, content);

@@ -5,7 +5,6 @@ import { AuthGuard } from 'src/app/core/guards/auth.guard';
 import { RoleComponent } from '../uikit/pages/role/role.component';
 import { UserComponent } from '../uikit/pages/user/user.component';
 import { ModuleComponent } from '../uikit/pages/module/module.component';
-import { TestingComponent } from '../uikit/pages/testing/testing.component';
 
 const routes: Routes = [
   {
@@ -38,15 +37,7 @@ const routes: Routes = [
       { path: '', component: ModuleComponent }
     ]
   },
-  
-  {
-    path: 'testing',
-    component: LayoutComponent,
-    canActivate: [AuthGuard],
-    children: [
-      { path: '', component: TestingComponent }
-    ]
-  },{ path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+  { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
   { path: '**', redirectTo: 'error/404' },
 ];
 

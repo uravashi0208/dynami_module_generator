@@ -46,7 +46,7 @@ bootstrapApplication(AppComponent, {
       return {
         cache: new InMemoryCache(),
         link: authLink.concat(
-          httpLink.create({ uri: 'https://dynami-module-generator.onrender.com/graphql' })
+          httpLink.create({ uri: 'http://localhost:4000/graphql' })
         ),
       };
     }),

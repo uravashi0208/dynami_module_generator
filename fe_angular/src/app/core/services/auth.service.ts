@@ -5,6 +5,7 @@ import { BehaviorSubject, Observable, map, tap, catchError, throwError, take } f
 import { Router } from '@angular/router';
 // import { ToastrService } from 'ngx-toastr'; 
 
+// #region GraphQL Types
 export interface User {
   id: string;
   email: string;
@@ -20,12 +21,26 @@ export interface LoginResponse {
 }
 
 export interface RegisterResponse {
-  createUser: {
+  register: {
     token: string;
     user: User;
   };
 }
 
+interface ForgotPasswordResponse {
+  forgotPassword: {
+    message: string;
+  };
+}
+
+interface ResetPasswordResponse {
+  resetPassword: {
+    message: string;
+  };
+}
+// #endregion
+
+// #region GraphQL Operations
 const LOGIN_MUTATION = gql`
   mutation Login($input: LoginInput!) {
     login(input: $input) {
@@ -65,6 +80,22 @@ const ME_QUERY = gql`
   }
 `;
 
+const FORGOT_PASSWORD_MUTATION = gql`
+  mutation ForgotPassword($email: String!) {
+    forgotPassword(email: $email) {
+      message
+    }
+  }
+`;
+
+const RESET_PASSWORD_MUTATION = gql`
+  mutation ResetPassword($token: String!, $password: String!) {
+    resetPassword(token: $token, password: $password) {
+      message
+    }
+  }
+`;
+// #endregion
 
 @Injectable({
   providedIn: 'root'
@@ -72,11 +103,11 @@ const ME_QUERY = gql`
 export class AuthService {
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   private tokenSubject = new BehaviorSubject<string | null>(null);
-  private authLoadingSubject = new BehaviorSubject<boolean>(true); 
-  
+  private authLoadingSubject = new BehaviorSubject<boolean>(true);
+
   public currentUser$ = this.currentUserSubject.asObservable();
   public isAuthenticated$ = this.currentUser$.pipe(map(user => !!user));
-  public authLoading$ = this.authLoadingSubject.asObservable(); // Add loading observable
+  public authLoading$ = this.authLoadingSubject.asObservable();
 
   constructor(
     private apollo: Apollo,
@@ -91,29 +122,29 @@ export class AuthService {
     if (token) {
       this.tokenSubject.next(token);
       this.getCurrentUser().subscribe({
-        next: (user) => {
-          this.authLoadingSubject.next(false); // Loading complete
+        next: () => {
+          this.authLoadingSubject.next(false);
         },
-        error: (error) => {
-          this.authLoadingSubject.next(false); // Loading complete even on error
+        error: () => {
+          this.authLoadingSubject.next(false);
           this.logout();
         }
       });
     } else {
-      this.authLoadingSubject.next(false); // No token, loading complete
+      this.authLoadingSubject.next(false);
     }
   }
 
   login(email: string, password: string): Observable<User> {
-  const input = {
-    email,
-    password
-  };
+    const input = {
+      email,
+      password
+    };
 
-  return this.apollo.mutate<LoginResponse>({
-    mutation: LOGIN_MUTATION,
-    variables: { input } // Pass as input object
-  }).pipe(
+    return this.apollo.mutate<LoginResponse>({
+      mutation: LOGIN_MUTATION,
+      variables: { input }
+    }).pipe(
       map(result => result.data!.login),
       tap(loginData => {
         localStorage.setItem('auth_token', loginData.token);
@@ -125,23 +156,22 @@ export class AuthService {
       catchError(error => {
         console.error('Login error:', error);
         const errorMessage = error.message || 'Login failed. Please try again.';
-        // this.toastr.error(errorMessage, 'Error'); // Error toast
+        // this.toastr.error(errorMessage, 'Error');
         return throwError(() => error);
       })
     );
   }
 
-  register(email: string, password: string, first_name?: string, last_name?: string): Observable<User> {
+  register(first_name: string, last_name: string, email: string, password: string): Observable<User> {
     const input = {
-        email,
-        password,
-        first_name: first_name || '',
-        last_name: last_name || '',
-        roleIds: ['68cad59db5beb339ed799925'] // Add empty array or appropriate role IDs
-      };
+      first_name: first_name || '',
+      last_name: last_name || '',
+      email,
+      password,
+      roleIds: ['68da990220e12d5a35c25c28']
+    };
 
-
-    return this.apollo.mutate<{register: {token: string, user: User}}>({
+    return this.apollo.mutate<RegisterResponse>({
       mutation: REGISTER_MUTATION,
       variables: { input }
     }).pipe(
@@ -150,13 +180,39 @@ export class AuthService {
         localStorage.setItem('auth_token', registerData.token);
         this.tokenSubject.next(registerData.token);
         this.currentUserSubject.next(registerData.user);
-        // this.toastr.success('Registration successful!', 'Success'); // Success toast
+        // this.toastr.success('Registration successful!', 'Success');
       }),
       map(registerData => registerData.user),
       catchError(error => {
         console.error('Registration error:', error);
         const errorMessage = error.message || 'Registration failed. Please try again.';
-        // this.toastr.error(errorMessage, 'Error'); // Error toast
+        // this.toastr.error(errorMessage, 'Error');
+        return throwError(() => error);
+      })
+    );
+  }
+
+  requestPasswordReset(email: string): Observable<string> {
+    return this.apollo.mutate<ForgotPasswordResponse>({
+      mutation: FORGOT_PASSWORD_MUTATION,
+      variables: { email }
+    }).pipe(
+      map(result => result.data!.forgotPassword.message),
+      catchError(error => {
+        console.error('Forgot password error:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  resetPassword(token: string, password: string): Observable<string> {
+    return this.apollo.mutate<ResetPasswordResponse>({
+      mutation: RESET_PASSWORD_MUTATION,
+      variables: { token, password }
+    }).pipe(
+      map(result => result.data!.resetPassword.message),
+      catchError(error => {
+        console.error('Reset password error:', error);
         return throwError(() => error);
       })
     );
@@ -193,14 +249,13 @@ export class AuthService {
     return !!this.getToken() && !!this.currentUserSubject.value;
   }
 
-
   redirectBasedOnAuth(): void {
-  this.isAuthenticated$.pipe(take(1)).subscribe(isAuthenticated => {
-    if (isAuthenticated) {
-      this.router.navigate(['/dashboard']);
-    } else {
-      this.router.navigate(['/login']);
-    }
-  });
-}
+    this.isAuthenticated$.pipe(take(1)).subscribe(isAuthenticated => {
+      if (isAuthenticated) {
+        this.router.navigate(['/dashboard']);
+      } else {
+        this.router.navigate(['/login']);
+      }
+    });
+  }
 }

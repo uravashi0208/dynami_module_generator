@@ -8,11 +8,11 @@ import { AuthService } from 'src/app/core/services/auth.service';
 
 @Component({
   selector: 'app-sign-in',
-  templateUrl: './sign-in.component.html',
-  styleUrls: ['./sign-in.component.css'],
+  templateUrl: './login.component.html',
+  styleUrls: ['./login.component.css'],
   imports: [FormsModule, ReactiveFormsModule, RouterLink, AngularSvgIconModule, NgIf, ButtonComponent, NgClass],
 })
-export class SignInComponent implements OnInit {
+export class LoginComponent implements OnInit {
   form!: FormGroup;
   submitted = false;
   passwordTextType!: boolean;

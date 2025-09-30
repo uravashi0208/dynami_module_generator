@@ -6,6 +6,10 @@ const authSchema = gql`
     user: User!
   }
 
+  type MessagePayload {
+    message: String!
+  }
+
   input LoginInput {
     email: String!
     password: String!
@@ -13,6 +17,8 @@ const authSchema = gql`
 
   extend type Mutation {
     login(input: LoginInput!): AuthPayload!
+    forgotPassword(email: String!): MessagePayload!
+    resetPassword(token: String!, password: String!): MessagePayload!
   }
 `;
 module.exports = authSchema;

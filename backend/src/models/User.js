@@ -14,6 +14,8 @@ const userSchema = new mongoose.Schema({
   },
   roles: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Role' }],
   isActive: { type: Boolean, default: true }, // Add isActive field
+  resetPasswordToken: { type: String, required: false },
+  resetPasswordExpires: { type: Date },
   createdAt: { type: Date, default: Date.now }, // Add createdAt field
 }, { timestamps: true });
 

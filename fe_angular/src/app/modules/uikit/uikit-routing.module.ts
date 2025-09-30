@@ -4,7 +4,6 @@ import { UikitComponent } from './uikit.component';
 import { RoleComponent } from './pages/role/role.component';
 import { UserComponent } from './pages/user/user.component';
 import { ModuleComponent } from './pages/module/module.component';
-import { TestingComponent } from './pages/testing/testing.component';
 
 const routes: Routes = [
   {
@@ -15,8 +14,7 @@ const routes: Routes = [
       { path: 'role', component: RoleComponent },
       { path: 'user', component: UserComponent },
       { path: 'module', component: ModuleComponent },
-      
-      { path: 'testing', component: TestingComponent },{ path: '**', redirectTo: 'errors/404' },
+      { path: '**', redirectTo: 'errors/404' },
     ],
   },
 ];

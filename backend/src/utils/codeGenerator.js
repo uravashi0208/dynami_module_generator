@@ -5,21 +5,22 @@ const path = require('path');
 const generateModel = (moduleName, fields) => {
   try {
     const modelTemplate = `
-const mongoose = require('mongoose');
+    const mongoose = require('mongoose');
 
-const ${moduleName.toLowerCase()}Schema = new mongoose.Schema({
-  ${fields.map(field => {
-    let fieldDef = `${field.name}: { type: ${field.dataType}`;
-    if (field.isRequired) fieldDef += ', required: true';
-    if (field.isUnique) fieldDef += ', unique: true';
-    if (field.dataType === 'ObjectId' && field.ref) fieldDef += `, ref: '${field.ref}'`;
-    fieldDef += ' }';
-    return fieldDef;
-  }).join(',\n  ')}
-}, { timestamps: true });
+    mongoose.pluralize(null);
+    const ${moduleName.toLowerCase()}Schema = new mongoose.Schema({
+      ${fields.map(field => {
+        let fieldDef = `${field.name}: { type: ${field.dataType}`;
+        if (field.isRequired) fieldDef += ', required: true';
+        if (field.isUnique) fieldDef += ', unique: true';
+        if (field.dataType === 'ObjectId' && field.ref) fieldDef += `, ref: '${field.ref}'`;
+        fieldDef += ' }';
+        return fieldDef;
+      }).join(',\n  ')}
+    }, { timestamps: true });
 
-module.exports = mongoose.model('${moduleName}', ${moduleName.toLowerCase()}Schema);
-`;
+    module.exports = mongoose.model('${moduleName}', ${moduleName.toLowerCase()}Schema);
+    `;
 
     const modelsDir = path.join(__dirname, '../models');
     if (!fs.existsSync(modelsDir)) {
@@ -386,386 +387,407 @@ const generateFrontendFiles = async (moduleName, fields) => {
 };
 
 const generateComponentTS = async (moduleName, fields, moduleDir) => {
-  const componentTemplate = `
-import { Component, computed, OnInit, signal, EventEmitter, Output } from '@angular/core';
-import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators, FormArray } from '@angular/forms';
-import { AngularSvgIconModule } from 'angular-svg-icon';
-import { toast } from 'ngx-sonner';
-import { TableFooterComponent } from '../table/components/table-footer/table-footer.component';
-import { ${moduleName}Service, ${moduleName} } from 'src/app/core/services/${moduleName.toLowerCase()}.service';
-import { TableFilterService } from '../table/services/table-filter.service';
+  try {
+    const componentTemplate = `
+  import { Component, computed, OnInit, signal, EventEmitter, Output } from '@angular/core';
+  import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators, FormArray } from '@angular/forms';
+  import { AngularSvgIconModule } from 'angular-svg-icon';
+  import { toast } from 'ngx-sonner';
+  import { TableFooterComponent } from '../table/components/table-footer/table-footer.component';
+  import { ${moduleName}Service, ${moduleName} } from 'src/app/core/services/${moduleName.toLowerCase()}.service';
+  import { TableFilterService } from '../table/services/table-filter.service';
 
-@Component({
-  selector: 'app-${moduleName.toLowerCase()}',
-  imports: [
-    AngularSvgIconModule,
-    FormsModule,
-    TableFooterComponent,
-    ReactiveFormsModule,
-  ],
-  templateUrl: './${moduleName.toLowerCase()}.component.html',
-  styleUrl: './${moduleName.toLowerCase()}.component.css',
-})
-export class ${moduleName}Component implements OnInit {
-  ${moduleName.toLowerCase()}s = signal<${moduleName}[]>([]);
-  @Output() onCheck = new EventEmitter<boolean>();
-  show${moduleName}Form = false;
-  editing${moduleName}: ${moduleName} | null = null;
-  ${moduleName.toLowerCase()}Form!: FormGroup;
-  protected readonly toast = toast;
+  @Component({
+    selector: 'app-${moduleName.toLowerCase()}',
+    imports: [
+      AngularSvgIconModule,
+      FormsModule,
+      TableFooterComponent,
+      ReactiveFormsModule,
+    ],
+    templateUrl: './${moduleName.toLowerCase()}.component.html',
+    styleUrl: './${moduleName.toLowerCase()}.component.css',
+  })
+  export class ${moduleName}Component implements OnInit {
+    ${moduleName.toLowerCase()}s = signal<${moduleName}[]>([]);
+    @Output() onCheck = new EventEmitter<boolean>();
+    show${moduleName}Form = false;
+    editing${moduleName}: ${moduleName} | null = null;
+    ${moduleName.toLowerCase()}Form!: FormGroup;
+    protected readonly toast = toast;
 
-  // Pagination properties
-  currentPage = signal(1);
-  itemsPerPage = signal(5);
-  totalItems = computed(() => this.filtered${moduleName}s().length);
+    // Pagination properties
+    currentPage = signal(1);
+    itemsPerPage = signal(5);
+    totalItems = computed(() => this.filtered${moduleName}s().length);
 
-  constructor(
-    private ${moduleName.toLowerCase()}Service: ${moduleName}Service, 
-    private filterService: TableFilterService,
-    private readonly _formBuilder: FormBuilder
-  ) {
-    this.${moduleName.toLowerCase()}Form = this._formBuilder.group({
-      ${fields.map(field => `${field.name}: ['', ${field.isRequired ? 'Validators.required' : ''}]`).join(',\n      ')}
-    });
-
-    this.load${moduleName}s();
-  }
-
-  private load${moduleName}s(): void {
-    this.${moduleName.toLowerCase()}Service.get${moduleName}s().subscribe({
-      next: ({ data }) => {
-        this.${moduleName.toLowerCase()}s.set(data.${moduleName.toLowerCase()}s);
-      },
-      error: (error) => {
-        this.handleRequestError(error, '${moduleName.toLowerCase()}s');
-      },
-    });
-  }
-
-  private handleRequestError(error: any, entity: string) {
-    const msg = \`An error occurred while fetching \${entity}.\`;
-    toast.error(msg, {
-      position: 'bottom-right',
-      description: error.message,
-      action: {
-        label: 'Retry',
-        onClick: () => this.load${moduleName}s(),
-      },
-      actionButtonStyle: 'background-color:#DC2626; color:white;',
-    });
-  }
-
-  filtered${moduleName}s = computed(() => {
-    const search = this.filterService.searchField().toLowerCase();
-    
-    return this.${moduleName.toLowerCase()}s()
-      .filter((${moduleName.toLowerCase()}) =>
-        ${fields.map(field => `${moduleName.toLowerCase()}.${field.name}?.toString().toLowerCase().includes(search)`).join(' ||\n        ')}
-      );
-  });
-
-  // Get paginated ${moduleName.toLowerCase()}s
-  paginated${moduleName}s = computed(() => {
-    const startIndex = (this.currentPage() - 1) * this.itemsPerPage();
-    const endIndex = startIndex + this.itemsPerPage();
-    return this.filtered${moduleName}s().slice(startIndex, endIndex);
-  });
-
-  onPageChange(page: number): void {
-    this.currentPage.set(page);
-  }
-
-  onPageSizeChange(size: number): void {
-    this.itemsPerPage.set(size);
-    this.currentPage.set(1);
-  }
-
-  onSearchChange(value: Event) {
-    const input = value.target as HTMLInputElement;
-    this.filterService.searchField.set(input.value);
-  }
-
-  public toggle(event: Event) {
-    const value = (event.target as HTMLInputElement).checked;
-    this.onCheck.emit(value); 
-  }
-
-  // ${moduleName} form methods
-  open${moduleName}Form(${moduleName.toLowerCase()}?: ${moduleName}) {
-    if (${moduleName.toLowerCase()}) {
-      this.editing${moduleName} = ${moduleName.toLowerCase()};
-      this.${moduleName.toLowerCase()}Form.patchValue({
-        ${fields.map(field => `${field.name}: ${moduleName.toLowerCase()}.${field.name}`).join(',\n        ')}
+    constructor(
+      private ${moduleName.toLowerCase()}Service: ${moduleName}Service, 
+      private filterService: TableFilterService,
+      private readonly _formBuilder: FormBuilder
+    ) {
+      this.${moduleName.toLowerCase()}Form = this._formBuilder.group({
+        ${fields.map(field => `${field.name}: ['', ${field.isRequired ? 'Validators.required' : ''}]`).join(',\n      ')}
       });
-    } else {
-      this.editing${moduleName} = null;
-      this.${moduleName.toLowerCase()}Form.reset();
+
+      this.load${moduleName}s();
     }
-    this.show${moduleName}Form = true;
-  }
-  
-  close${moduleName}Form() {
-    this.show${moduleName}Form = false;
-    this.${moduleName.toLowerCase()}Form.reset();
-    this.editing${moduleName} = null;
-  }
-  
-  save${moduleName}() {
-    if (this.${moduleName.toLowerCase()}Form.valid) {
-      const formData = this.${moduleName.toLowerCase()}Form.value;
+
+    private load${moduleName}s(): void {
+      this.${moduleName.toLowerCase()}Service.get${moduleName}s().subscribe({
+        next: ({ data }) => {
+          this.${moduleName.toLowerCase()}s.set(data.${moduleName.toLowerCase()}s);
+        },
+        error: (error) => {
+          this.handleRequestError(error, '${moduleName.toLowerCase()}s');
+        },
+      });
+    }
+
+    private handleRequestError(error: any, entity: string) {
+      const msg = \`An error occurred while fetching \${entity}.\`;
+      toast.error(msg, {
+        position: 'bottom-right',
+        description: error.message,
+        action: {
+          label: 'Retry',
+          onClick: () => this.load${moduleName}s(),
+        },
+        actionButtonStyle: 'background-color:#DC2626; color:white;',
+      });
+    }
+
+    filtered${moduleName}s = computed(() => {
+      const search = this.filterService.searchField().toLowerCase();
       
-      if (this.editing${moduleName}) {
-        // Update existing ${moduleName.toLowerCase()}
-        this.${moduleName.toLowerCase()}Service.update${moduleName}(this.editing${moduleName}.id, formData).subscribe({
-          next: () => {
-            toast.success('${moduleName} updated successfully');
-            this.load${moduleName}s();
-            this.close${moduleName}Form();
-          },
-          error: (error) => {
-            toast.error('Failed to update ${moduleName.toLowerCase()}', { description: error.message });
-          }
+      return this.${moduleName.toLowerCase()}s()
+        .filter((${moduleName.toLowerCase()}) =>
+          ${fields.map(field => `${moduleName.toLowerCase()}.${field.name}?.toString().toLowerCase().includes(search)`).join(' ||\n        ')}
+        );
+    });
+
+    // Get paginated ${moduleName.toLowerCase()}s
+    paginated${moduleName}s = computed(() => {
+      const startIndex = (this.currentPage() - 1) * this.itemsPerPage();
+      const endIndex = startIndex + this.itemsPerPage();
+      return this.filtered${moduleName}s().slice(startIndex, endIndex);
+    });
+
+    onPageChange(page: number): void {
+      this.currentPage.set(page);
+    }
+
+    onPageSizeChange(size: number): void {
+      this.itemsPerPage.set(size);
+      this.currentPage.set(1);
+    }
+
+    onSearchChange(value: Event) {
+      const input = value.target as HTMLInputElement;
+      this.filterService.searchField.set(input.value);
+    }
+
+    public toggle(event: Event) {
+      const value = (event.target as HTMLInputElement).checked;
+      this.onCheck.emit(value); 
+    }
+
+    // ${moduleName} form methods
+    open${moduleName}Form(${moduleName.toLowerCase()}?: ${moduleName}) {
+      if (${moduleName.toLowerCase()}) {
+        this.editing${moduleName} = ${moduleName.toLowerCase()};
+        this.${moduleName.toLowerCase()}Form.patchValue({
+          ${fields.map(field => `${field.name}: ${moduleName.toLowerCase()}.${field.name}`).join(',\n        ')}
         });
       } else {
-        // Create new ${moduleName.toLowerCase()}
-        this.${moduleName.toLowerCase()}Service.create${moduleName}(formData).subscribe({
+        this.editing${moduleName} = null;
+        this.${moduleName.toLowerCase()}Form.reset();
+      }
+      this.show${moduleName}Form = true;
+    }
+    
+    close${moduleName}Form() {
+      this.show${moduleName}Form = false;
+      this.${moduleName.toLowerCase()}Form.reset();
+      this.editing${moduleName} = null;
+    }
+    
+    save${moduleName}() {
+      if (this.${moduleName.toLowerCase()}Form.valid) {
+        const formData = this.${moduleName.toLowerCase()}Form.value;
+        
+        if (this.editing${moduleName}) {
+          // Update existing ${moduleName.toLowerCase()}
+          this.${moduleName.toLowerCase()}Service.update${moduleName}(this.editing${moduleName}.id, formData).subscribe({
+            next: () => {
+              toast.success('${moduleName} updated successfully');
+              this.load${moduleName}s();
+              this.close${moduleName}Form();
+            },
+            error: (error) => {
+              toast.error('Failed to update ${moduleName.toLowerCase()}', { description: error.message });
+            }
+          });
+        } else {
+          // Create new ${moduleName.toLowerCase()}
+          this.${moduleName.toLowerCase()}Service.create${moduleName}(formData).subscribe({
+            next: () => {
+              toast.success('${moduleName} created successfully');
+              this.load${moduleName}s();
+              this.close${moduleName}Form();
+            },
+            error: (error) => {
+              toast.error('Failed to create ${moduleName.toLowerCase()}', { description: error.message });
+            }
+          });
+        }
+      }
+    }
+    
+    edit${moduleName}(${moduleName.toLowerCase()}: ${moduleName}) {
+      this.open${moduleName}Form(${moduleName.toLowerCase()});
+    }
+    
+    delete${moduleName}(${moduleName.toLowerCase()}: ${moduleName}) {
+      if (confirm(\`Are you sure you want to delete this ${moduleName.toLowerCase()}?\`)) {
+        this.${moduleName.toLowerCase()}Service.delete${moduleName}(${moduleName.toLowerCase()}.id).subscribe({
           next: () => {
-            toast.success('${moduleName} created successfully');
-            this.load${moduleName}s();
-            this.close${moduleName}Form();
+            this.${moduleName.toLowerCase()}s.update(${moduleName.toLowerCase()}s => ${moduleName.toLowerCase()}s.filter(u => u.id !== ${moduleName.toLowerCase()}.id));
+            toast.success('${moduleName} deleted successfully');
           },
           error: (error) => {
-            toast.error('Failed to create ${moduleName.toLowerCase()}', { description: error.message });
+            toast.error('Failed to delete ${moduleName.toLowerCase()}', { description: error.message });
           }
         });
       }
     }
+    
+    ngOnInit() {}
   }
-  
-  edit${moduleName}(${moduleName.toLowerCase()}: ${moduleName}) {
-    this.open${moduleName}Form(${moduleName.toLowerCase()});
-  }
-  
-  delete${moduleName}(${moduleName.toLowerCase()}: ${moduleName}) {
-    if (confirm(\`Are you sure you want to delete this ${moduleName.toLowerCase()}?\`)) {
-      this.${moduleName.toLowerCase()}Service.delete${moduleName}(${moduleName.toLowerCase()}.id).subscribe({
-        next: () => {
-          this.${moduleName.toLowerCase()}s.update(${moduleName.toLowerCase()}s => ${moduleName.toLowerCase()}s.filter(u => u.id !== ${moduleName.toLowerCase()}.id));
-          toast.success('${moduleName} deleted successfully');
-        },
-        error: (error) => {
-          toast.error('Failed to delete ${moduleName.toLowerCase()}', { description: error.message });
-        }
-      });
-    }
-  }
-  
-  ngOnInit() {}
-}
-`;
+  `;
 
-  const componentPath = path.join(moduleDir, `${moduleName.toLowerCase()}.component.ts`);
-  fs.writeFileSync(componentPath, componentTemplate.trim());
+    const componentPath = path.join(moduleDir, `${moduleName.toLowerCase()}.component.ts`);
+    fs.writeFileSync(componentPath, componentTemplate.trim());
+  } catch (error) {
+    console.error('Error generating frontend component files:', error);
+    throw error;
+  }
 };
 
 const generateComponentHTML = async (moduleName, fields, moduleDir) => {
-  const htmlTemplate = `
-<div class="mb-4 flex justify-between">
-  <div class="inline-block">
-    <h3 class="text-foreground font-semibold">${moduleName}</h3>
-    <div class="text-muted-foreground space-x-1 text-xs font-medium">
-      <a href="" class="hover:text-primary">All ${moduleName}s:</a>
-      <span class="text-foreground">{{ filtered${moduleName}s().length }}</span>
-    </div>
-  </div>
-  <div class="inline-block space-x-4">
-    <button
-      class="bg-primary text-primary-foreground flex-none rounded-md px-4 py-2.5 text-xs font-semibold"
-      (click)="open${moduleName}Form()">
-      Add ${moduleName}
-    </button>
-  </div>
-</div>
-
-<div class="border-muted/20 bg-background flex min-w-full flex-col rounded-xl border p-2">
-  <div class="flex flex-wrap items-center justify-between gap-2 py-3 px-5">
-    <h3 class="text-muted-foreground text-sm font-medium">
-      Showing {{ paginated${moduleName}s().length }} of {{ ${moduleName.toLowerCase()}s().length }} ${moduleName.toLowerCase()}s
-    </h3>
-    <div class="flex flex-wrap gap-2">
-      <div class="flex">
-        <label class="text-muted-foreground relative">
-          <div class="absolute left-2.5 top-2.5">
-            <svg-icon src="./assets/icons/heroicons/outline/magnifying-glass.svg" [svgClass]="'h-4 w-4'"> </svg-icon>
-          </div>
-          <input
-            name="search"
-            class="py-2 pl-8 pr-2"
-            placeholder="Search ${moduleName.toLowerCase()}s"
-            type="text"
-            value=""
-            (input)="onSearchChange($event)" />
-        </label>
+  try {
+    const htmlTemplate = `
+  <div class="mb-4 flex justify-between">
+    <div class="inline-block">
+      <h3 class="text-foreground font-semibold">${moduleName}</h3>
+      <div class="text-muted-foreground space-x-1 text-xs font-medium">
+        <a href="" class="hover:text-primary">All ${moduleName}s:</a>
+        <span class="text-foreground">{{ filtered${moduleName}s().length }}</span>
       </div>
     </div>
+    <div class="inline-block space-x-4">
+      <button
+        class="bg-primary text-primary-foreground flex-none rounded-md px-4 py-2.5 text-xs font-semibold"
+        (click)="open${moduleName}Form()">
+        Add ${moduleName}
+      </button>
+    </div>
   </div>
-  <div
-    class="scrollbar-thumb-rounded scrollbar-track-rounded scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted grow overflow-x-auto px-5">
-    <table
-      class="text-muted-foreground table w-full table-auto border-collapse border-0 text-left align-middle leading-5">
-      <thead class="border-muted/20 text-muted-foreground border text-xs">
-        <tr>
-          ${fields.map(field => `<th class="min-w-[150px]">${field.label}</th>`).join('\n          ')}
-          <th class="w-[150px]">Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (${moduleName.toLowerCase()} of paginated${moduleName}s(); track $index) {
-        <tr class="hover:bg-card/50">
-          ${fields.map(field => `
-          <td>
-            <span class="text-muted-foreground text-sm">{{ ${moduleName.toLowerCase()}.${field.name} }}</span>
-          </td>`).join('\n          ')}
-          <td class="text-center">
-            <div class="flex items-center space-x-5">
-              <button
-                (click)="edit${moduleName}(${moduleName.toLowerCase()})"
-                class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-blue-600 transition-colors">
-                <svg-icon src="assets/icons/heroicons/outline/pencil-square.svg" [svgClass]="'h-7 w-7'"> </svg-icon>
-              </button>
-              <button
-                (click)="delete${moduleName}(${moduleName.toLowerCase()})"
-                class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-red-600 transition-colors">
-                <svg-icon src="assets/icons/heroicons/outline/trash.svg" [svgClass]="'h-7 w-7'"> </svg-icon>
-              </button>
+
+  <div class="border-muted/20 bg-background flex min-w-full flex-col rounded-xl border p-2">
+    <div class="flex flex-wrap items-center justify-between gap-2 py-3 px-5">
+      <h3 class="text-muted-foreground text-sm font-medium">
+        Showing {{ paginated${moduleName}s().length }} of {{ ${moduleName.toLowerCase()}s().length }} ${moduleName.toLowerCase()}s
+      </h3>
+      <div class="flex flex-wrap gap-2">
+        <div class="flex">
+          <label class="text-muted-foreground relative">
+            <div class="absolute left-2.5 top-2.5">
+              <svg-icon src="./assets/icons/heroicons/outline/magnifying-glass.svg" [svgClass]="'h-4 w-4'"> </svg-icon>
             </div>
-          </td>
-        </tr>
-        } @empty {
-        <tr>
-          <td class="py-4 text-center text-sm" colspan="${fields.length + 2}">No ${moduleName.toLowerCase()}s found</td>
-        </tr>
-        }
-      </tbody>
-    </table>
-  </div>
-  <app-table-footer
-    [currentPage]="currentPage()"
-    [itemsPerPage]="itemsPerPage()"
-    [totalItems]="totalItems()"
-    (pageChange)="onPageChange($event)"
-    (pageSizeChange)="onPageSizeChange($event)"></app-table-footer>
-</div>
-
-<!-- ${moduleName} Form Modal -->
-@if (show${moduleName}Form) {
-<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-  <div class="w-full max-w-2xl max-h-[90vh] rounded-lg bg-white shadow-xl flex flex-col">
-    <!-- Header -->
-    <div class="p-6 border-b border-gray-200">
-      <h3 class="text-lg font-semibold">{{ editing${moduleName} ? 'Edit ${moduleName}' : 'Add New ${moduleName}' }}</h3>
+            <input
+              name="search"
+              class="py-2 pl-8 pr-2"
+              placeholder="Search ${moduleName.toLowerCase()}s"
+              type="text"
+              value=""
+              (input)="onSearchChange($event)" />
+          </label>
+        </div>
+      </div>
     </div>
-    
-    <!-- Scrollable Form Content -->
-    <div class="flex-1 overflow-y-auto p-6">
-      <form [formGroup]="${moduleName.toLowerCase()}Form" (ngSubmit)="save${moduleName}()">
-        ${fields.map(field => `
-        <div class="mb-4">
-          <label class="mb-1 block text-sm font-medium text-gray-700">${field.label}</label>
-          <input
-            type="${getInputType(field.dataType)}"
-            formControlName="${field.name}"
-            class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Enter ${field.label.toLowerCase()}" />
-          @if (${moduleName.toLowerCase()}Form.get('${field.name}')?.invalid && ${moduleName.toLowerCase()}Form.get('${field.name}')?.touched) {
-          <p class="mt-1 text-xs text-red-500">${field.label} is required</p>
+    <div
+      class="scrollbar-thumb-rounded scrollbar-track-rounded scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted grow overflow-x-auto px-5">
+      <table
+        class="text-muted-foreground table w-full table-auto border-collapse border-0 text-left align-middle leading-5">
+        <thead class="border-muted/20 text-muted-foreground border text-xs">
+          <tr>
+            ${fields.map(field => `<th class="min-w-[150px]">${field.label}</th>`).join('\n          ')}
+            <th class="w-[150px]">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (${moduleName.toLowerCase()} of paginated${moduleName}s(); track $index) {
+          <tr class="hover:bg-card/50">
+            ${fields.map(field => `
+            <td>
+              <span class="text-muted-foreground text-sm">{{ ${moduleName.toLowerCase()}.${field.name} }}</span>
+            </td>`).join('\n          ')}
+            <td class="text-center">
+              <div class="flex items-center space-x-5">
+                <button
+                  (click)="edit${moduleName}(${moduleName.toLowerCase()})"
+                  class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-blue-600 transition-colors">
+                  <svg-icon src="assets/icons/heroicons/outline/pencil-square.svg" [svgClass]="'h-7 w-7'"> </svg-icon>
+                </button>
+                <button
+                  (click)="delete${moduleName}(${moduleName.toLowerCase()})"
+                  class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-red-600 transition-colors">
+                  <svg-icon src="assets/icons/heroicons/outline/trash.svg" [svgClass]="'h-7 w-7'"> </svg-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+          } @empty {
+          <tr>
+            <td class="py-4 text-center text-sm" colspan="${fields.length + 2}">No ${moduleName.toLowerCase()}s found</td>
+          </tr>
           }
-        </div>`).join('\n        ')}
-      </form>
+        </tbody>
+      </table>
     </div>
-    
-    <!-- Fixed Footer with Buttons -->
-    <div class="p-6 border-t border-gray-200 bg-gray-50">
-      <div class="flex justify-end space-x-3">
-        <button
-          type="button"
-          (click)="close${moduleName}Form()"
-          class="rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200">
-          Cancel
-        </button>
-        <button
-          type="submit"
-          [disabled]="!${moduleName.toLowerCase()}Form.valid"
-          (click)="save${moduleName}()"
-          class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:bg-blue-300">
-          {{ editing${moduleName} ? 'Update' : 'Create' }}
-        </button>
+    <app-table-footer
+      [currentPage]="currentPage()"
+      [itemsPerPage]="itemsPerPage()"
+      [totalItems]="totalItems()"
+      (pageChange)="onPageChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)"></app-table-footer>
+  </div>
+
+  <!-- ${moduleName} Form Modal -->
+  @if (show${moduleName}Form) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+    <div class="w-full max-w-2xl max-h-[90vh] rounded-lg bg-white shadow-xl flex flex-col">
+      <!-- Header -->
+      <div class="p-6 border-b border-gray-200">
+        <h3 class="text-lg font-semibold">{{ editing${moduleName} ? 'Edit ${moduleName}' : 'Add New ${moduleName}' }}</h3>
+      </div>
+      
+      <!-- Scrollable Form Content -->
+      <div class="flex-1 overflow-y-auto p-6">
+        <form [formGroup]="${moduleName.toLowerCase()}Form" (ngSubmit)="save${moduleName}()">
+          ${fields.map(field => `
+          <div class="mb-4">
+            <label class="mb-1 block text-sm font-medium text-gray-700">${field.label}</label>
+            <input
+              type="${getInputType(field.dataType)}"
+              formControlName="${field.name}"
+              class="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter ${field.label.toLowerCase()}" />
+            @if (${moduleName.toLowerCase()}Form.get('${field.name}')?.invalid && ${moduleName.toLowerCase()}Form.get('${field.name}')?.touched) {
+            <p class="mt-1 text-xs text-red-500">${field.label} is required</p>
+            }
+          </div>`).join('\n        ')}
+        </form>
+      </div>
+      
+      <!-- Fixed Footer with Buttons -->
+      <div class="p-6 border-t border-gray-200 bg-gray-50">
+        <div class="flex justify-end space-x-3">
+          <button
+            type="button"
+            (click)="close${moduleName}Form()"
+            class="rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200">
+            Cancel
+          </button>
+          <button
+            type="submit"
+            [disabled]="!${moduleName.toLowerCase()}Form.valid"
+            (click)="save${moduleName}()"
+            class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:bg-blue-300">
+            {{ editing${moduleName} ? 'Update' : 'Create' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
-</div>
-}
-`;
+  }
+  `;
 
-  const htmlPath = path.join(moduleDir, `${moduleName.toLowerCase()}.component.html`);
-  fs.writeFileSync(htmlPath, htmlTemplate.trim());
+    const htmlPath = path.join(moduleDir, `${moduleName.toLowerCase()}.component.html`);
+    fs.writeFileSync(htmlPath, htmlTemplate.trim());
+  } catch (error) {
+    console.error('Error generating frontend html files:', error);
+    throw error;
+  }
 };
 
 const generateComponentCSS = async (moduleName, moduleDir) => {
-  const cssTemplate = `
-/* ${moduleName} Component Styles */
-th {
-    font-weight: 500;
-    padding: 0.625rem 1rem;
-    font-weight: 500;
-    font-size: 0.8125rem;
-    line-height: 1.125rem;
-    vertical-align: middle;
-}
+  try {
+    const cssTemplate = `
+  /* ${moduleName} Component Styles */
+  th {
+      font-weight: 500;
+      padding: 0.625rem 1rem;
+      font-weight: 500;
+      font-size: 0.8125rem;
+      line-height: 1.125rem;
+      vertical-align: middle;
+  }
 
-td {
-    padding: 0.75rem 1rem;
-    font-size: 0.85rem;
-}
-`;
+  td {
+      padding: 0.75rem 1rem;
+      font-size: 0.85rem;
+  }
+  `;
 
-  const cssPath = path.join(moduleDir, `${moduleName.toLowerCase()}.component.css`);
-  fs.writeFileSync(cssPath, cssTemplate.trim());
+    const cssPath = path.join(moduleDir, `${moduleName.toLowerCase()}.component.css`);
+    fs.writeFileSync(cssPath, cssTemplate.trim());
+    } catch (error) {
+    console.error('Error generating frontend css files:', error);
+    throw error;
+  }
 };
 
 
 const generateComponentSpecTS = async (moduleName, moduleDir) => {
-  const componentTemplate = `
+  try {
+    const componentTemplate = `
 
 
-  import { ComponentFixture, TestBed } from '@angular/core/testing';
-  import { ${moduleName}Component } from './${moduleName.toLowerCase()}.component';
+    import { ComponentFixture, TestBed } from '@angular/core/testing';
+    import { ${moduleName}Component } from './${moduleName.toLowerCase()}.component';
 
-  describe('${moduleName}Component', () => {
-    let component: ${moduleName}Component;
-    let fixture: ComponentFixture<${moduleName}Component>;
+    describe('${moduleName}Component', () => {
+      let component: ${moduleName}Component;
+      let fixture: ComponentFixture<${moduleName}Component>;
 
-    beforeEach(async () => {
-      await TestBed.configureTestingModule({
-        imports: [${moduleName}Component],
-      }).compileComponents();
+      beforeEach(async () => {
+        await TestBed.configureTestingModule({
+          imports: [${moduleName}Component],
+        }).compileComponents();
 
-      fixture = TestBed.createComponent(${moduleName}Component);
-      component = fixture.componentInstance;
-      fixture.detectChanges();
+        fixture = TestBed.createComponent(${moduleName}Component);
+        component = fixture.componentInstance;
+        fixture.detectChanges();
+      });
+
+      it('should create', () => {
+        expect(component).toBeTruthy();
+      });
     });
+  `;
 
-    it('should create', () => {
-      expect(component).toBeTruthy();
-    });
-  });
-`;
-
-  const componentPath = path.join(moduleDir, `${moduleName.toLowerCase()}.component.spec.ts`);
-  fs.writeFileSync(componentPath, componentTemplate.trim());
+    const componentPath = path.join(moduleDir, `${moduleName.toLowerCase()}.component.spec.ts`);
+    fs.writeFileSync(componentPath, componentTemplate.trim());
+  } catch (error) {
+    console.error('Error generating frontend component spec files:', error);
+    throw error;
+  }
 };
 
 const generateService = async (moduleName, fields) => {
+  try {
   const serviceTemplate = `
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -925,6 +947,10 @@ export class ${moduleName}Service {
   const servicePath = path.join(servicesDir, `${moduleName.toLowerCase()}.service.ts`);
   fs.writeFileSync(servicePath, serviceTemplate.trim());
   console.log(`Service generated at: ${servicePath}`);
+  } catch (error) {
+    console.error('Error generating frontend services files:', error);
+    throw error;
+  }
 };
 
 // Function to update Angular layout routing

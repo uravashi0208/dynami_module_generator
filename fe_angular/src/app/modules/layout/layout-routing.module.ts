@@ -36,7 +36,8 @@ const routes: Routes = [
     children: [
       { path: '', component: ModuleComponent }
     ]
-  },{ path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+  },
+  { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
   { path: '**', redirectTo: 'error/404' },
 ];
 

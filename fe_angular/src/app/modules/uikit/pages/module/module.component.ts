@@ -200,6 +200,8 @@ export class ModuleComponent implements OnInit {
             this.closeModuleForm();
           },
           error: (error) => {
+            console.log("error :",error);
+            
             toast.error('Failed to create module', { description: error.message });
           }
         });

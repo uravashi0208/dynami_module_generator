@@ -13,8 +13,7 @@ const routes: Routes = [
       { path: '', redirectTo: '', pathMatch: 'full' },
       { path: 'role', component: RoleComponent },
       { path: 'user', component: UserComponent },
-      { path: 'module', component: ModuleComponent },
-      { path: '**', redirectTo: 'errors/404' },
+      { path: 'module', component: ModuleComponent },{ path: '**', redirectTo: 'errors/404' },
     ],
   },
 ];

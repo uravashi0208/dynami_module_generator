@@ -41,22 +41,15 @@ module.exports = {
           };
         }
 
-        // Token generation
-        const generateResetToken = () => {
-          const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-          let token = '';
-          for (let i = 0; i < 64; i++) {
-            token += chars.charAt(Math.floor(Math.random() * chars.length));
-          }
-          return token;
-        };
+        // Generate a 64-character token
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let resetToken = '';
+        for (let i = 0; i < 64; i++) {
+          resetToken += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
 
-        const resetToken = generateResetToken();
-        
-        // Set reset token and expiry (1 hour from now)
         user.resetPasswordToken = resetToken;
-        user.resetPasswordExpires = Date.now() + 3600000;
-        
+        user.resetPasswordExpires = Date.now() + 3600000; // 1 hour expiry
         await user.save();
 
         // Send email

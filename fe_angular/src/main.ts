@@ -29,7 +29,6 @@ bootstrapApplication(AppComponent, {
     importProvidersFrom(BrowserModule, AppRoutingModule),
     provideAnimations(),
     provideHttpClient(),
-    provideAnimations(),
     // ✅ Apollo provider
     provideApollo(() => {
       const httpLink = inject(HttpLink);
@@ -47,7 +46,7 @@ bootstrapApplication(AppComponent, {
       return {
         cache: new InMemoryCache(),
         link: authLink.concat(
-          httpLink.create({ uri: 'https://dynami-module-generator.onrender.com/graphql' })
+          httpLink.create({ uri: environment.apiUrl })
         ),
       };
     }),

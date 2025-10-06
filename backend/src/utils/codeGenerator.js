@@ -31,7 +31,7 @@ const generateModel = (moduleName, fields) => {
     fs.writeFileSync(modelPath, modelTemplate.trim());
     console.log(`Model generated at: ${modelPath}`);
 
-     // Update models index
+    // Update models index
     updateModelsIndex(moduleName);
   } catch (error) {
     console.error('Error generating model:', error);
@@ -42,38 +42,38 @@ const generateModel = (moduleName, fields) => {
 const generateSchema = (moduleName, fields) => {
   try {
     const schemaTemplate = `
-const { gql } = require('apollo-server-express');
+    const { gql } = require('apollo-server-express');
 
-const ${moduleName.toLowerCase()}Schema = gql(\`
-  type ${moduleName} {
-    id: ID!
-    ${fields.map(field => `${field.name}: ${mapDataTypeToGQL(field.dataType)}`).join('\n    ')}
-    createdAt: String!
-    updatedAt: String!
-  }
+    const ${moduleName.toLowerCase()}Schema = gql(\`
+      type ${moduleName} {
+        id: ID!
+        ${fields.map(field => `${field.name}: ${mapDataTypeToGQL(field.dataType)}`).join('\n    ')}
+        createdAt: String!
+        updatedAt: String!
+      }
 
-  input Create${moduleName}Input {
-    ${fields.map(field => `${field.name}: ${mapDataTypeToGQL(field.dataType)}${field.isRequired ? '!' : ''}`).join('\n    ')}
-  }
+      input Create${moduleName}Input {
+        ${fields.map(field => `${field.name}: ${mapDataTypeToGQL(field.dataType)}${field.isRequired ? '!' : ''}`).join('\n    ')}
+      }
 
-  input Update${moduleName}Input {
-    ${fields.map(field => `${field.name}: ${mapDataTypeToGQL(field.dataType)}`).join('\n    ')}
-  }
+      input Update${moduleName}Input {
+        ${fields.map(field => `${field.name}: ${mapDataTypeToGQL(field.dataType)}`).join('\n    ')}
+      }
 
-  extend type Query {
-    ${moduleName.toLowerCase()}s: [${moduleName}!]!
-    ${moduleName.toLowerCase()}(id: ID!): ${moduleName}
-  }
+      extend type Query {
+        ${moduleName.toLowerCase()}s: [${moduleName}!]!
+        ${moduleName.toLowerCase()}(id: ID!): ${moduleName}
+      }
 
-  extend type Mutation {
-    create${moduleName}(input: Create${moduleName}Input!): ${moduleName}!
-    update${moduleName}(id: ID!, input: Update${moduleName}Input!): ${moduleName}!
-    delete${moduleName}(id: ID!): Boolean!
-  }
-\`);
+      extend type Mutation {
+        create${moduleName}(input: Create${moduleName}Input!): ${moduleName}!
+        update${moduleName}(id: ID!, input: Update${moduleName}Input!): ${moduleName}!
+        delete${moduleName}(id: ID!): Boolean!
+      }
+    \`);
 
-module.exports = ${moduleName.toLowerCase()}Schema;
-`;
+    module.exports = ${moduleName.toLowerCase()}Schema;
+    `;
 
     const schemasDir = path.join(__dirname, '../graphql/schemas');
     if (!fs.existsSync(schemasDir)) {
@@ -96,43 +96,43 @@ module.exports = ${moduleName.toLowerCase()}Schema;
 const generateResolver = (moduleName, fields) => {
   try {
     const resolverTemplate = `
-const ${moduleName} = require('../../models');
+    const ${moduleName} = require('../../models');
 
-module.exports = {
-  Query: {
-    ${moduleName.toLowerCase()}s: async () => {
-      return ${moduleName}.find();
-    },
-    ${moduleName.toLowerCase()}: async (_, { id }) => {
-      return ${moduleName}.findById(id);
-    }
-  },
+    module.exports = {
+      Query: {
+        ${moduleName.toLowerCase()}s: async () => {
+          return ${moduleName}.find();
+        },
+        ${moduleName.toLowerCase()}: async (_, { id }) => {
+          return ${moduleName}.findById(id);
+        }
+      },
 
-  Mutation: {
-    create${moduleName}: async (_, { input }) => {
-      const ${moduleName.toLowerCase()} = new ${moduleName}(input);
-      await ${moduleName.toLowerCase()}.save();
-      return ${moduleName.toLowerCase()};
-    },
-    
-    update${moduleName}: async (_, { id, input }) => {
-      const ${moduleName.toLowerCase()} = await ${moduleName}.findById(id);
-      if (!${moduleName.toLowerCase()}) {
-        throw new Error('${moduleName} not found');
+      Mutation: {
+        create${moduleName}: async (_, { input }) => {
+          const ${moduleName.toLowerCase()} = new ${moduleName}(input);
+          await ${moduleName.toLowerCase()}.save();
+          return ${moduleName.toLowerCase()};
+        },
+        
+        update${moduleName}: async (_, { id, input }) => {
+          const ${moduleName.toLowerCase()} = await ${moduleName}.findById(id);
+          if (!${moduleName.toLowerCase()}) {
+            throw new Error('${moduleName} not found');
+          }
+          
+          Object.assign(${moduleName.toLowerCase()}, input);
+          await ${moduleName.toLowerCase()}.save();
+          return ${moduleName.toLowerCase()};
+        },
+        
+        delete${moduleName}: async (_, { id }) => {
+          const result = await ${moduleName}.findByIdAndDelete(id);
+          return !!result;
+        }
       }
-      
-      Object.assign(${moduleName.toLowerCase()}, input);
-      await ${moduleName.toLowerCase()}.save();
-      return ${moduleName.toLowerCase()};
-    },
-    
-    delete${moduleName}: async (_, { id }) => {
-      const result = await ${moduleName}.findByIdAndDelete(id);
-      return !!result;
-    }
-  }
-};
-`;
+    };
+    `;
 
     const resolversDir = path.join(__dirname, '../graphql/resolvers');
     if (!fs.existsSync(resolversDir)) {
@@ -342,10 +342,15 @@ const updateModelsIndex = (moduleName) => {
 // ... rest of the functions (generateFrontendFiles, generateComponentTS, generateComponentHTML, etc.)
 const generateFrontendFiles = async (moduleName, fields) => {
   try {
-    const frontendDir = path.join(__dirname, '../../../fe_angular/src/app/modules/uikit/pages');
-    console.log("frontendDir:", frontendDir);
+    console.log('Vercel Environment Check:', process.env.VERCEL);
     
-    // Create directory if it doesn't exist (recursive creation)
+    // Vercel ma /tmp directory use karo (only writable location)
+    const baseDir = process.env.VERCEL ? '/tmp' : path.join(__dirname, '../../../fe_angular/src/app/modules/uikit/pages');
+    const frontendDir = path.join(baseDir, 'modules/uikit/pages');
+    
+    console.log("Using directory:", frontendDir);
+    
+    // Create directory if it doesn't exist
     if (!fs.existsSync(frontendDir)) {
       fs.mkdirSync(frontendDir, { recursive: true });
       console.log("Created frontend directory:", frontendDir);
@@ -354,25 +359,43 @@ const generateFrontendFiles = async (moduleName, fields) => {
     const moduleDir = path.join(frontendDir, moduleName.toLowerCase());
     console.log("moduleDir:", moduleDir);
     
-    // Create module directory if it doesn't exist
+    // Create module directory
     if (!fs.existsSync(moduleDir)) {
       fs.mkdirSync(moduleDir, { recursive: true });
       console.log("Created module directory:", moduleDir);
     }
 
-    // Generate component TypeScript file
+    // Generate component files in /tmp
     await generateComponentTS(moduleName, fields, moduleDir);
-    
-    // Generate component HTML file
     await generateComponentHTML(moduleName, fields, moduleDir);
-    
-    // Generate component CSS file
     await generateComponentCSS(moduleName, moduleDir);
-    
-    // Generate service file
-    await generateService(moduleName, fields);
-
     await generateComponentSpecTS(moduleName, moduleDir)
+    
+    // Services directory
+    const servicesDir = process.env.VERCEL ? 
+      path.join('/tmp', 'core/services') : 
+      path.join(__dirname, '../../../fe_angular/src/app/core/services');
+    
+    if (!fs.existsSync(servicesDir)) {
+      fs.mkdirSync(servicesDir, { recursive: true });
+    }
+    await generateService(moduleName, fields, servicesDir);
+
+      const generatedFiles = {
+        componentTS: path.join(moduleDir, `${moduleName.toLowerCase()}.component.ts`),
+        componentHTML: path.join(moduleDir, `${moduleName.toLowerCase()}.component.html`),
+        componentCSS: path.join(moduleDir, `${moduleName.toLowerCase()}.component.css`),
+        componentSpec: path.join(moduleDir, `${moduleName.toLowerCase()}.component.spec.ts`),
+        service: path.join(servicesDir, `${moduleName.toLowerCase()}.service.ts`)
+      };
+
+      console.log('Frontend files generated successfully in:', baseDir);
+      
+      // Vercel ma files generate thaya pachi GitHub ma commit karo
+      if (process.env.VERCEL) {
+        await commitToGitHub(moduleName, generatedFiles);
+      }
+
 
     updateLayoutRouting(moduleName);
     updateUikitRouting(moduleName);
@@ -1106,6 +1129,62 @@ const updateMenu = (moduleName) => {
     return true;
   } catch (error) {
     console.error('Error updating menu:', error);
+    return false;
+  }
+};
+
+// GitHub auto-commit function
+const commitToGitHub = async (moduleName, generatedFiles) => {
+  try {
+    const { Octokit } = require('@octokit/rest');
+    
+    const octokit = new Octokit({
+      auth: process.env.GITHUB_TOKEN
+    });
+
+    const commits = [];
+
+    // Read each generated file and create commit
+    for (const [fileType, filePath] of Object.entries(generatedFiles)) {
+      if (fs.existsSync(filePath)) {
+        const content = fs.readFileSync(filePath, 'utf8');
+        const base64Content = Buffer.from(content).toString('base64');
+        
+        let githubPath = '';
+        if (fileType.includes('component')) {
+          githubPath = `src/app/modules/uikit/pages/${moduleName.toLowerCase()}/${path.basename(filePath)}`;
+        } else if (fileType === 'service') {
+          githubPath = `src/app/core/services/${path.basename(filePath)}`;
+        }
+
+        commits.push({
+          path: githubPath,
+          content: base64Content,
+          message: `Add ${moduleName} ${fileType}`
+        });
+      }
+    }
+
+    // GitHub API calls to create files
+    for (const commit of commits) {
+      try {
+        await octokit.repos.createOrUpdateFileContents({
+          owner: process.env.GITHUB_OWNER,
+          repo: process.env.GITHUB_REPO,
+          path: commit.path,
+          message: commit.message,
+          content: commit.content,
+          branch: 'main'
+        });
+        console.log(`Committed ${commit.path} to GitHub`);
+      } catch (error) {
+        console.error(`Error committing ${commit.path}:`, error);
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error('GitHub commit error:', error);
     return false;
   }
 };

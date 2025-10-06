@@ -5,7 +5,7 @@ import { toast } from 'ngx-sonner';
 import { TableFooterComponent } from '../table/components/table-footer/table-footer.component';
 import { ModuleService, Module, Field } from 'src/app/core/services/module.service';
 import { TableFilterService } from '../table/services/table-filter.service';
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgIf } from '@angular/common';
 
 @Component({
   selector: 'app-module',
@@ -14,6 +14,7 @@ import { DatePipe } from '@angular/common';
     FormsModule,
     TableFooterComponent,
     ReactiveFormsModule,
+    NgIf
   ],
   templateUrl: './module.component.html',
   styleUrl: './module.component.css',
@@ -23,6 +24,7 @@ export class ModuleComponent implements OnInit {
   modules = signal<Module[]>([]);
   @Output() onCheck = new EventEmitter<boolean>();
   showModuleForm = false;
+  loading = false;
   editingModule: Module | null = null;
   moduleForm!: FormGroup;
   fieldTypes = ['String', 'Number', 'Boolean', 'Date', 'Array', 'ObjectId'];
@@ -176,6 +178,7 @@ export class ModuleComponent implements OnInit {
   }
   
   saveModule() {
+    this.loading = true;
     if (this.moduleForm.valid) {
       const formData = this.moduleForm.value;
       
@@ -183,11 +186,13 @@ export class ModuleComponent implements OnInit {
         // Update existing module
         this.moduleService.updateModule(this.editingModule.name, formData.fields).subscribe({
           next: () => {
+            this.loading = false;
             toast.success('Module updated successfully');
             this.loadModules();
             this.closeModuleForm();
           },
           error: (error) => {
+            this.loading = false;
             toast.error('Failed to update module', { description: error.message });
           }
         });
@@ -195,11 +200,13 @@ export class ModuleComponent implements OnInit {
         // Create new module
         this.moduleService.createModule(formData.name, formData.fields).subscribe({
           next: () => {
+            this.loading = false;
             toast.success('Module created successfully');
             this.loadModules();
             this.closeModuleForm();
           },
           error: (error) => {
+            this.loading = false;
             console.log("error :",error);
             
             toast.error('Failed to create module', { description: error.message });

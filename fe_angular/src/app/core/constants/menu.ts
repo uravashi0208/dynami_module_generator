@@ -26,11 +26,6 @@ export class Menu {
           label: 'Dynamic Module',
           route: '/module',
         },
-    {
-      icon: 'assets/icons/heroicons/outline/cube.svg',
-      label: 'Dfdfsd',
-      route: '/dfdfsd',
-    },
       ],
     },
   ];

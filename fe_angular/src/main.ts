@@ -10,6 +10,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpLink } from 'apollo-angular/http';
 import { setContext } from '@apollo/client/link/context';
 import { InMemoryCache } from '@apollo/client/core';
+import { provideToastr } from 'ngx-toastr';
 
 if (environment.production) {
   enableProdMode();
@@ -50,6 +51,14 @@ bootstrapApplication(AppComponent, {
         ),
       };
     }),
+    provideToastr({
+      timeOut: 3000,
+      positionClass: 'toast-top-right',
+      preventDuplicates: true,
+      closeButton: true,
+      progressBar: true,
+      tapToDismiss: true
+    })
   ],
 }).catch((err) => console.error(err));
 

@@ -38,31 +38,23 @@ export class ForgotPasswordComponent implements OnInit {
 
   onSubmit() {
     this.submitted = true;
-  this.loading = true;
-  const { email } = this.form.value;
+    this.loading = true;
+    const { email } = this.form.value;
 
-  if (this.form.invalid) {
-    this.loading = false;
-    return;
-  }
-
-  this.authService.requestPasswordReset(email).subscribe({
-    next: (message: string) => {
-      // Show success message
-      // this.toastr.success(message, 'Success');
-      console.log('Password reset email sent:', message);
-      
-      // Redirect to login page with success message
-      this._router.navigate(['/auth/login'], { 
-        queryParams: { message: 'password_reset_sent' } 
-      });
-    },
-    error: (error) => {
+    if (this.form.invalid) {
       this.loading = false;
-      // Show error message
-      // this.toastr.error('Failed to send reset email', 'Error');
-      console.error('Password reset error:', error);
+      return;
     }
-  });
+
+    this.authService.requestPasswordReset(email).subscribe({
+      next: (message: string) => {
+        this._router.navigate(['/auth/login'], { 
+          queryParams: { message: 'password_reset_sent' } 
+        });
+      },
+      error: (error) => {
+        this.loading = false;
+      }
+    });
   }
 }

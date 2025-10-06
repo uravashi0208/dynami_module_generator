@@ -3,7 +3,9 @@ import { Apollo } from 'apollo-angular';
 import { gql } from '@apollo/client/core';
 import { BehaviorSubject, Observable, map, tap, catchError, throwError, take } from 'rxjs';
 import { Router } from '@angular/router';
-// import { ToastrService } from 'ngx-toastr'; 
+import { MessageService } from './message.service';
+import { MESSAGES } from '../constants/messages.constants';
+import { ToastrService } from 'ngx-toastr';
 
 // #region GraphQL Types
 export interface User {
@@ -112,7 +114,7 @@ export class AuthService {
   constructor(
     private apollo: Apollo,
     private router: Router,
-    // private toastr: ToastrService,
+    private toastr: ToastrService
   ) {
     this.initializeAuth();
   }
@@ -135,7 +137,7 @@ export class AuthService {
     }
   }
 
-  login(email: string, password: string): Observable<User> {
+login(email: string, password: string): Observable<User> {
     const input = {
       email,
       password
@@ -150,13 +152,13 @@ export class AuthService {
         localStorage.setItem('auth_token', loginData.token);
         this.tokenSubject.next(loginData.token);
         this.currentUserSubject.next(loginData.user);
-        // this.toastr.success('Login successful!', 'Success');
+        this.toastr.success(MESSAGES.SUCCESS.LOGIN, 'Success!');
       }),
       map(loginData => loginData.user),
       catchError(error => {
         console.error('Login error:', error);
-        const errorMessage = error.message || 'Login failed. Please try again.';
-        // this.toastr.error(errorMessage, 'Error');
+        const errorMessage = error.message || MESSAGES.ERROR.LOGIN_FAILED;
+        this.toastr.error(errorMessage, 'Error!');
         return throwError(() => error);
       })
     );
@@ -180,13 +182,11 @@ export class AuthService {
         localStorage.setItem('auth_token', registerData.token);
         this.tokenSubject.next(registerData.token);
         this.currentUserSubject.next(registerData.user);
-        // this.toastr.success('Registration successful!', 'Success');
+        this.toastr.success(MESSAGES.SUCCESS.REGISTER, 'Success!');
       }),
       map(registerData => registerData.user),
       catchError(error => {
-        console.error('Registration error:', error);
-        const errorMessage = error.message || 'Registration failed. Please try again.';
-        // this.toastr.error(errorMessage, 'Error');
+        this.toastr.error(error.message || MESSAGES.ERROR.REGISTRATION_FAILED, 'Error!');
         return throwError(() => error);
       })
     );
@@ -198,8 +198,11 @@ export class AuthService {
       variables: { email }
     }).pipe(
       map(result => result.data!.forgotPassword.message),
+      tap(message => {
+        this.toastr.info(message, 'Info');
+      }),
       catchError(error => {
-        console.error('Forgot password error:', error);
+        this.toastr.error(error.message || MESSAGES.ERROR.NETWORK_ERROR, 'Error!');
         return throwError(() => error);
       })
     );
@@ -211,22 +214,27 @@ export class AuthService {
       variables: { token, password }
     }).pipe(
       map(result => result.data!.resetPassword.message),
+      tap(message => {
+        this.toastr.success(message, 'Success!');
+      }),
       catchError(error => {
-        console.error('Reset password error:', error);
+        this.toastr.error(error.message || MESSAGES.ERROR.RESET_FAILED, 'Error!');
         return throwError(() => error);
       })
     );
   }
-
   getCurrentUser(): Observable<User> {
     return this.apollo.query<{ me: User }>({
       query: ME_QUERY,
       fetchPolicy: 'network-only'
     }).pipe(
       map(result => result.data.me),
-      tap(user => this.currentUserSubject.next(user)),
+      tap(user => {
+        this.currentUserSubject.next(user);
+        this.toastr.info(MESSAGES.INFO.WELCOME, 'Welcome!');
+      }),
       catchError(error => {
-        console.error('Get current user error:', error);
+        this.toastr.error(MESSAGES.ERROR.UNAUTHORIZED, 'Error!');
         this.logout();
         return throwError(() => error);
       })
@@ -238,6 +246,7 @@ export class AuthService {
     this.tokenSubject.next(null);
     this.currentUserSubject.next(null);
     this.apollo.client.clearStore();
+    this.toastr.success(MESSAGES.SUCCESS.LOGOUT, 'Success!');
     this.router.navigate(['/auth']);
   }
 
@@ -249,7 +258,7 @@ export class AuthService {
     return !!this.getToken() && !!this.currentUserSubject.value;
   }
 
-  redirectBasedOnAuth(): void {
+  redirectBasedOnAuth(): void { 
     this.isAuthenticated$.pipe(take(1)).subscribe(isAuthenticated => {
       if (isAuthenticated) {
         this.router.navigate(['/dashboard']);

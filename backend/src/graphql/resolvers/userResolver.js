@@ -1,6 +1,7 @@
 const { User, Role } = require('../../models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { MESSAGES } = require('../../constants/messages');
 
 module.exports = {
   Query: {
@@ -67,25 +68,32 @@ module.exports = {
     register: async (_, { input }) => {
       const { first_name, last_name, email, password, roleIds } = input;
 
-      const existingUser = await User.findOne({ email });
-      if (existingUser) throw new Error('User with this email already exists');
-
-      const roles = roleIds ? await Role.find({ _id: { $in: roleIds } }) : [];
-
-      const newUser = new User({ first_name, last_name, email, password, roles });
-      await newUser.save();
-      
-      // Generate JWT token
-      const token = jwt.sign(
-        { userId: newUser._id, email: newUser.email },
-        process.env.JWT_SECRET || 'your-secret-key',
-        { expiresIn: '24h' }
-      );
-      
-      return {
-        token,
-        user: await newUser.populate('roles')
-      };
+      try{
+        const existingUser = await User.findOne({ email });
+        if (existingUser)
+        {
+          throw new Error(MESSAGES.ERROR.USER_EXISTS);
+        } 
+  
+        const roles = roleIds ? await Role.find({ _id: { $in: roleIds } }) : [];
+  
+        const newUser = new User({ first_name, last_name, email, password, roles });
+        await newUser.save();
+        
+        // Generate JWT token
+        const token = jwt.sign(
+          { userId: newUser._id, email: newUser.email },
+          process.env.JWT_SECRET || 'your-secret-key',
+          { expiresIn: '24h' }
+        );
+        
+        return {
+          token,
+          user: await newUser.populate('roles')
+        };
+      } catch (error) {
+        throw new Error(error.message || MESSAGES.ERROR.USER_CREATE_FAILED);
+      }
     },
   },
 };

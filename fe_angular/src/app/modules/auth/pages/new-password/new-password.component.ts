@@ -45,7 +45,6 @@ export class NewPasswordComponent implements OnInit {
     // Check if token is present
     if (!this.token) {
       console.error('No reset token found');
-      // You can redirect to forgot password page or show an error
     }
   }
 
@@ -133,22 +132,13 @@ export class NewPasswordComponent implements OnInit {
     this._authService.resetPassword(this.token, password).subscribe({
       next: (message: string) => {
         this.loading = false;
-        // Show success message (you can use a toast service)
-        console.log('Password reset successful:', message);
-        
-        // Redirect to login page with success message
         this._router.navigate(['/auth/login'], {
           queryParams: { message: 'password_reset_success' }
         });
       },
       error: (error) => {
         this.loading = false;
-        console.error('Password reset error:', error);
-        
-        // Show error message (you can use a toast service)
-        // Handle specific errors
         if (error.message.includes('invalid') || error.message.includes('expired')) {
-          // Redirect to forgot password page if token is invalid/expired
           this._router.navigate(['/auth/forgot-password'], {
             queryParams: { error: 'invalid_token' }
           });

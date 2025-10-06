@@ -21,4 +21,5 @@ const authSchema = gql`
     resetPassword(token: String!, password: String!): MessagePayload!
   }
 `;
+
 module.exports = authSchema;

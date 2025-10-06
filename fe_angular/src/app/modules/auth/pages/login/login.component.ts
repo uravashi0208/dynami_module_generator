@@ -18,8 +18,15 @@ export class LoginComponent implements OnInit {
   passwordTextType!: boolean;
   loading = false;
   returnUrl = '';
+  message: string = '';
+  messageType: 'success' | 'error' | 'info' | 'warning' = 'info';
 
-  constructor(private readonly _formBuilder: FormBuilder, private readonly _router: Router,  private authService: AuthService,private route: ActivatedRoute) {}
+  constructor(
+    private readonly _formBuilder: FormBuilder, 
+    private readonly _router: Router,  
+    private authService: AuthService,
+    private route: ActivatedRoute
+  ) {}
 
   onClick() {
     console.log('Button clicked');
@@ -33,7 +40,6 @@ export class LoginComponent implements OnInit {
     });
 
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
-    console.log("this.returnUrl :",this.returnUrl);
     
     // Redirect if already logged in
     this.authService.isAuthenticated$.subscribe(isAuth => {
@@ -55,12 +61,12 @@ export class LoginComponent implements OnInit {
   onSubmit() {
     this.submitted = true;
     this.loading = true;
-    const { email, password } = this.form.value;
-
+    
     if (this.form.invalid) {
       this.loading = false;
       return;
     }
+    const { email, password } = this.form.value;
 
     this.authService.login(email, password).subscribe({
       next: () => {

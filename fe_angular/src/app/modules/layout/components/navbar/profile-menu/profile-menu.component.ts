@@ -107,7 +107,6 @@ export class ProfileMenuComponent implements OnInit {
 
   editProfile(): void {
       console.log('Edit Profile clicked');
-      // Navigate to edit profile page
     }
 
   logout(): void {
